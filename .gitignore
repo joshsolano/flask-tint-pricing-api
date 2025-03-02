@@ -1,0 +1,6 @@
+# Ignore API keys
+.env
+
+# Ignore system files
+__pycache__/
+.DS_Store
