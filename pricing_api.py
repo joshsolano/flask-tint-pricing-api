@@ -1,21 +1,25 @@
+import os
 import openai
 import requests
-import os
 import smtplib
 from flask import Flask, request, jsonify
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Secure API Keys
+# Secure API Key Retrieval
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 SQUARE_ACCESS_TOKEN = os.getenv("SQUARE_ACCESS_TOKEN")
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 SQUARE_LOCATION_ID = os.getenv("SQUARE_LOCATION_ID")
 SMTP_SERVER = "smtp.sendgrid.net"
 SMTP_PORT = 587
+
+# Initialize OpenAI Client
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 app = Flask(__name__)
 
@@ -25,11 +29,11 @@ def get_ai_quote(first_name, last_name, email, phone, vehicle_type, tint_selecti
         return "Manual Contact Required"
 
     prompt = f"""
-    You are a pricing expert for **Tint First**, a premium window tinting company located at:
-    **6670 Central Pike, Mount Juliet, TN 37122**.
+    You are a pricing expert for Tint First, a premium window tinting company located at:
+    6670 Central Pike, Mount Juliet, TN 37122.
 
-    - **Tint First only uses high-end ceramic tint**, so pricing should reflect **premium service**.
-    - Customers expect **exceptional quality and durability**.
+    - Tint First only uses high-end ceramic tint, so pricing should reflect premium service.
+    - Customers expect exceptional quality and durability.
     - Consider labor difficulty, window size, and tint removal when applicable.
 
     Customer Info:
@@ -43,21 +47,21 @@ def get_ai_quote(first_name, last_name, email, phone, vehicle_type, tint_selecti
     - Car Model: {vehicle_details}
     - Old Tint Removal Needed: {old_tint}
 
-    Generate a **realistic high-end pricing estimate** for this job, formatted as a single dollar amount.
+    Generate a realistic high-end pricing estimate for this job, formatted as a single dollar amount.
     """
 
     try:
-        openai.api_key = OPENAI_API_KEY
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a vehicle tint pricing expert for Tint First, a high-end tint shop specializing in ceramic tint."},
                 {"role": "user", "content": prompt}
             ]
         )
-        return response["choices"][0]["message"]["content"].strip().replace("$", "")
-    
-    except openai.error.OpenAIError as e:
+        return response.choices[0].message.content.strip().replace("$", "")
+
+    except Exception as e:
+        print(f"OpenAI API Error: {str(e)}")
         return f"Error generating quote: {str(e)}"
 
 @app.route('/get-quote', methods=['POST'])
